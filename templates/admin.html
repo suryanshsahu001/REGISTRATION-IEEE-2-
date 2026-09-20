@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>Organiser Dashboard</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card glass-card">
+            <h3>Students Registered</h3>
+            <div class="stat-value">{{ stats.students }}</div>
+        </div>
+        <div class="stat-card glass-card">
+            <h3>Teams Created</h3>
+            <div class="stat-value">{{ stats.teams }}</div>
+        </div>
+        <div class="stat-card glass-card">
+            <h3>Complete Teams</h3>
+            <div class="stat-value">{{ stats.complete }}</div>
+        </div>
+        <div class="stat-card glass-card">
+            <h3>Incomplete Teams</h3>
+            <div class="stat-value">{{ stats.incomplete }}</div>
+        </div>
+        <div class="stat-card glass-card highlight-stat">
+            <h3>Registered Teams</h3>
+            <div class="stat-value">{{ stats.registered }}</div>
+        </div>
+    </div>
+    
+    <div class="admin-controls glass-card">
+        <form method="GET" action="{{ url_for('admin') }}" class="search-filter-form">
+            <div class="search-box">
+                <input type="text" name="search" placeholder="Search teams or students..." value="{{ search_query }}">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+            </div>
+            
+            <div class="filter-box">
+                <label for="status">Filter:</label>
+                <select name="status" id="status" onchange="this.form.submit()">
+                    <option value="all" {% if filter_status == 'all' %}selected{% endif %}>All Teams</option>
+                    <option value="INCOMPLETE" {% if filter_status == 'INCOMPLETE' %}selected{% endif %}>Incomplete</option>
+                    <option value="COMPLETE" {% if filter_status == 'COMPLETE' %}selected{% endif %}>Complete</option>
+                    <option value="REGISTERED" {% if filter_status == 'REGISTERED' %}selected{% endif %}>Registered</option>
+                </select>
+            </div>
+        </form>
+    </div>
+    
+    <div class="table-container glass-card">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Team ID</th>
+                    <th>Team Name</th>
+                    <th>Leader</th>
+                    <th>Members</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                <tr>
+                    <td><span class="badge">{{ team.team_id }}</span></td>
+                    <td>{{ team.name }}</td>
+                    <td>{{ team.leader.name }}<br><small>{{ team.leader.email }}</small></td>
+                    <td>{{ team.member_count() }}/4</td>
+                    <td>
+                        <span class="status-badge status-{{ team.status.lower() }}">{{ team.status }}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-outline btn-sm view-team-btn" data-team-id="{{ team.id }}">View Details</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center">No teams found matching your criteria.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Dynamic Team Details Modals (hidden by default) -->
+{% for team in teams %}
+<div id="teamModal{{ team.id }}" class="modal team-details-modal">
+    <div class="modal-content glass-card">
+        <span class="close-modal">&times;</span>
+        <div class="modal-header">
+            <h3>Team Details: {{ team.name }}</h3>
+            <span class="status-badge status-{{ team.status.lower() }}">{{ team.status }}</span>
+        </div>
+        
+        <div class="team-meta">
+            <p><strong>Team ID:</strong> {{ team.team_id }}</p>
+            <p><strong>Created:</strong> {{ team.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+        
+        <h4>Members List</h4>
+        <div class="admin-members-list">
+            {% for member in team.members %}
+            <div class="admin-member-card">
+                <div class="member-role">
+                    {% if member.id == team.leader_id %}Leader{% else %}Member{% endif %}
+                </div>
+                <h5>{{ member.name }}</h5>
+                <p><i class="fas fa-envelope"></i> {{ member.email }}</p>
+                <p><i class="fas fa-phone"></i> {{ member.mobile }}</p>
+                <p><i class="fas fa-university"></i> {{ member.college }}</p>
+                <p><i class="fas fa-book"></i> {{ member.department }} ({{ member.year }})</p>
+                <p><strong>Skills:</strong> {{ member.skills }}</p>
+                <div class="social-links">
+                    {% if member.github %}<a href="{{ member.github }}" target="_blank"><i class="fab fa-github"></i> GitHub</a>{% endif %}
+                    {% if member.linkedin %}<a href="{{ member.linkedin }}" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a>{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
