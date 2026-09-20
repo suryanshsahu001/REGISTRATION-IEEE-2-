@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card glass-card">
+        <h2>Student Registration</h2>
+        <p class="subtitle">Join MEDHA 2026 Hackathon</p>
+        
+        <form method="POST" action="{{ url_for('register') }}" class="auth-form" id="registerForm">
+            <div class="form-section">
+                <h3>Personal Information</h3>
+                
+                <div class="form-group">
+                    <label for="name">Full Name *</label>
+                    <input type="text" id="name" name="name" required placeholder="John Doe">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required placeholder="john@example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password" required placeholder="Create a strong password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="mobile">Mobile Number *</label>
+                    <input type="tel" id="mobile" name="mobile" required pattern="[0-9]{10}" placeholder="10-digit mobile number">
+                </div>
+                
+                <div class="form-group">
+                    <label for="college">College/University *</label>
+                    <input type="text" id="college" name="college" required placeholder="Enter your college name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="department">Course/Department *</label>
+                    <input type="text" id="department" name="department" required placeholder="e.g., B.Tech Computer Science">
+                </div>
+                
+                <div class="form-group">
+                    <label for="year">Year of Study *</label>
+                    <select id="year" name="year" required>
+                        <option value="" disabled selected>Select Year</option>
+                        <option value="1st Year">1st Year</option>
+                        <option value="2nd Year">2nd Year</option>
+                        <option value="3rd Year">3rd Year</option>
+                        <option value="4th Year">4th Year</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">Register</button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Already registered? <a href="{{ url_for('login') }}">Login here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
