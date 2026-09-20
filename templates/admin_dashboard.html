@@ -1,0 +1,49 @@
+{% extends "admin_layout.html" %}
+
+{% block content %}
+<div class="admin-page-header">
+    <h1>Dashboard Overview</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('export_students') }}" class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Export Students</a>
+        <a href="{{ url_for('export_teams') }}" class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Export Teams</a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card glass-card">
+        <h3>Total Students</h3>
+        <div class="stat-value">{{ stats.total_students }}</div>
+    </div>
+    <div class="stat-card glass-card">
+        <h3>Students Without Team</h3>
+        <div class="stat-value warning-text">{{ stats.students_without_team }}</div>
+    </div>
+    <div class="stat-card glass-card">
+        <h3>Total Teams</h3>
+        <div class="stat-value">{{ stats.total_teams }}</div>
+    </div>
+    <div class="stat-card glass-card highlight-stat">
+        <h3>Registered Teams</h3>
+        <div class="stat-value success-text">{{ stats.registered_teams }}</div>
+    </div>
+</div>
+
+<div class="stats-grid" style="margin-top: 1.5rem;">
+    <div class="stat-card glass-card">
+        <h3>Complete Teams</h3>
+        <div class="stat-value">{{ stats.complete_teams }}</div>
+    </div>
+    <div class="stat-card glass-card">
+        <h3>Incomplete Teams</h3>
+        <div class="stat-value warning-text">{{ stats.incomplete_teams }}</div>
+    </div>
+    <div class="stat-card glass-card">
+        <h3>Team Leaders</h3>
+        <div class="stat-value">{{ stats.team_leaders }}</div>
+    </div>
+    <div class="stat-card glass-card">
+        <h3>Team Members</h3>
+        <div class="stat-value">{{ stats.team_members }}</div>
+    </div>
+</div>
+{% endblock %}
