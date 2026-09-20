@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - MEDHA 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-login-body">
+    <div class="auth-container">
+        <div class="auth-card glass-card admin-auth-card">
+            <div class="admin-auth-header">
+                <i class="fas fa-shield-alt"></i>
+                <h2>Admin Secure Login</h2>
+            </div>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for message in messages %}
+                            <div class="alert alert-warning">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Admin ID</label>
+                    <input type="text" id="email" name="email" required placeholder="Enter Admin ID">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">Secure Login</button>
+            </form>
+            
+            <div class="auth-footer">
+                <p><a href="{{ url_for('index') }}"><i class="fas fa-arrow-left"></i> Back to main site</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
