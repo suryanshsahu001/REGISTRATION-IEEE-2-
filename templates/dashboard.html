@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>Dashboard</h2>
+        <p>Welcome, <strong>{{ user.name }}</strong></p>
+    </div>
+
+    {% if not team %}
+        <div class="no-team-card glass-card">
+            <h3>You are not part of a team yet.</h3>
+            <p>Create a new team to become the Team Leader and then invite up to 3 more members.</p>
+            
+            <form method="POST" action="{{ url_for('create_team') }}" class="create-team-form">
+                <div class="form-group">
+                    <label for="team_name">Team Name</label>
+                    <input type="text" id="team_name" name="team_name" required
+                           placeholder="Enter your team name" maxlength="100">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Team</button>
+            </form>
+        </div>
+
+    {% else %}
+        {# ── Team Info Card ── #}
+        <div class="team-info-card glass-card">
+            <div class="team-header">
+                <div>
+                    <h3>{{ team.name }}</h3>
+                    <div class="team-id-badge">ID: {{ team.team_id }}</div>
+                </div>
+                <div class="team-status status-{{ team.status.lower() }}">
+                    Status: {{ team.status }}
+                </div>
+            </div>
+
+            <div class="team-stats">
+                <p><strong>Team Leader:</strong> {{ team.leader.name }}</p>
+                <p><strong>Members:</strong> {{ team.member_count() }} / 4</p>
+            </div>
+
+            {# Submit button — visible only to leader when team is complete #}
+            {% if team.leader_id == user.id and team.is_complete() and team.status != 'REGISTERED' %}
+                <div class="registration-action" style="margin-top:1rem;">
+                    <button id="finalSubmitBtn" class="btn btn-success">
+                        <i class="fas fa-check-circle"></i> Submit Final Registration
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+
+        {# ── Members Grid ── #}
+        <div class="team-members-section">
+            <h3>Team Members</h3>
+            <div class="members-grid">
+
+                {# Render LEADER first, then remaining members #}
+                {% for member in team.members %}
+                    {# Leader card #}
+                    {% if member.id == team.leader_id %}
+                    <div class="member-card glass-card">
+                        <div class="member-role">Team Leader</div>
+                        <h4 class="member-name">{{ member.name }}</h4>
+                        <div class="member-details">
+                            <p><i class="fas fa-envelope"></i> {{ member.email }}</p>
+                            <p><i class="fas fa-phone"></i> {{ member.mobile }}</p>
+                            <p><i class="fas fa-university"></i> {{ member.college }}</p>
+                            <p><i class="fas fa-book"></i> {{ member.department }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+
+                {% for member in team.members %}
+                    {# Non-leader members #}
+                    {% if member.id != team.leader_id %}
+                    <div class="member-card glass-card">
+                        <div class="member-role">Team Member</div>
+                        <h4 class="member-name">{{ member.name }}</h4>
+                        <div class="member-details">
+                            <p><i class="fas fa-envelope"></i> {{ member.email }}</p>
+                            <p><i class="fas fa-phone"></i> {{ member.mobile }}</p>
+                            <p><i class="fas fa-university"></i> {{ member.college }}</p>
+                            <p><i class="fas fa-book"></i> {{ member.department }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+
+                {# Empty slots — only render for remaining spots #}
+                {% set filled = team.member_count() %}
+                {% for i in range(4 - filled) %}
+                    <div class="member-card empty-slot glass-card">
+                        <div class="empty-content">
+                            <i class="fas fa-user-plus"></i>
+                            <p>Member slot available</p>
+                            {% if team.leader_id == user.id and team.status != 'REGISTERED' %}
+                                <button class="btn btn-outline btn-sm add-member-btn">Add Member</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{# ── Add Member Modal ── #}
+<div id="addMemberModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close-modal">&times;</span>
+        <h3>Add Team Member</h3>
+        <p>Register a new member directly to your team.</p>
+
+        <form method="POST" action="{{ url_for('add_member') }}" id="addMemberForm">
+            <div class="form-group">
+                <label for="member_name">Full Name *</label>
+                <input type="text" id="member_name" name="member_name" required
+                       placeholder="Enter member's full name">
+            </div>
+            <div class="form-group">
+                <label for="member_email">Email Address *</label>
+                <input type="email" id="member_email" name="member_email" required
+                       placeholder="Enter member's email">
+            </div>
+            <div class="form-group">
+                <label for="member_mobile">Mobile Number *</label>
+                <input type="tel" id="member_mobile" name="member_mobile" required pattern="[0-9]{10}"
+                       placeholder="10-digit mobile number">
+            </div>
+            <div class="form-group">
+                <label for="member_college">College/University *</label>
+                <input type="text" id="member_college" name="member_college" required
+                       value="{{ user.college }}">
+            </div>
+            <div class="form-group">
+                <label for="member_department">Course/Department *</label>
+                <input type="text" id="member_department" name="member_department" required
+                       value="{{ user.department }}">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-user-plus"></i> Add Member
+            </button>
+        </form>
+    </div>
+</div>
+
+{# ── Confirm Registration Modal ── #}
+{% if team %}
+<div id="confirmRegModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close-modal">&times;</span>
+        <h3>Confirm Team Registration</h3>
+
+        <div class="confirmation-details">
+            <p><strong>Team ID:</strong> {{ team.team_id }}</p>
+            <p><strong>Team Name:</strong> {{ team.name }}</p>
+            <p><strong>Members ({{ team.member_count() }}/4):</strong></p>
+            <ul>
+                {% for member in team.members %}
+                    <li>
+                        {% if member.id == team.leader_id %}
+                            <strong>[Leader]</strong>
+                        {% else %}
+                            [Member]
+                        {% endif %}
+                        {{ member.name }} — {{ member.email }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            Once submitted, your team cannot be modified without organiser approval.
+        </div>
+
+        <form method="POST" action="{{ url_for('submit_registration') }}" class="modal-actions">
+            <button type="button" class="btn btn-outline cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-success">Confirm Registration</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
