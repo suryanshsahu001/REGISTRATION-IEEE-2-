@@ -1,0 +1,51 @@
+{% extends "admin_layout.html" %}
+
+{% block content %}
+<div class="admin-page-header">
+    <h1>Audit Logs</h1>
+    <p class="subtitle" style="color:var(--text-muted);">Track admin actions and changes</p>
+</div>
+
+<div class="table-container glass-card" style="max-height: 70vh; overflow-y: auto;">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Admin</th>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Changes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td style="white-space: nowrap;">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ log.admin.name }}</td>
+                <td><span class="badge">{{ log.action }}</span></td>
+                <td>
+                    {% if log.target_type %}
+                        {{ log.target_type }} #{{ log.target_id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted); max-width: 300px; overflow-wrap: break-word;">
+                    {% if log.previous_value %}
+                        <strong>Prev:</strong> {{ log.previous_value }}<br>
+                    {% endif %}
+                    {% if log.new_value %}
+                        <strong>New:</strong> {{ log.new_value }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center">No audit logs found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
