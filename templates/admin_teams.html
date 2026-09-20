@@ -1,0 +1,31 @@
+{% extends "admin_layout.html" %}
+
+{% block content %}
+<div class="admin-page-header">
+    <h1>All Teams</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('export_teams') }}" class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Export CSV</a>
+    </div>
+</div>
+
+<div class="table-container glass-card">
+    <table class="admin-table" id="teamsTable">
+        <thead>
+            <tr>
+                <th>Team ID</th>
+                <th>Team Name</th>
+                <th>Leader</th>
+                <th>Members</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="teamsTableBody">
+            <!-- Populated via JS -->
+            <tr><td colspan="7" class="text-center">Loading teams...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
