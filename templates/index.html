@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-split">
+    {# ── Left: branding + CTA ── #}
+    <div class="hero-left">
+        <h2 class="event-title">MEDHA 2026</h2>
+        <h1 class="main-title">HACKATHON</h1>
+        <p class="tagline">Build. Innovate. Transform.</p>
+        <div class="hero-actions">
+            <a href="{{ url_for('register') }}" class="btn btn-primary">Register Now</a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline">Login</a>
+        </div>
+    </div>
+
+    {# ── Right: guidelines ── #}
+    <div class="hero-right">
+        <div class="guidelines-card glass-card">
+            <div class="guidelines-header">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>Registration Guidelines</h3>
+            </div>
+            <ul class="guidelines-list">
+                <li>
+                    <span class="g-num">1</span>
+                    <div><strong>Team Creation:</strong> Only the <em>Team Leader</em> can create a team and add members.</div>
+                </li>
+                <li>
+                    <span class="g-num">2</span>
+                    <div><strong>Unique Registration:</strong> Each <em>email ID and phone number</em> can be registered only once.</div>
+                </li>
+                <li>
+                    <span class="g-num">3</span>
+                    <div><strong>Team Verification:</strong> Your <em>Team ID</em> will be verified at the registration desk for identification.</div>
+                </li>
+                <li>
+                    <span class="g-num">4</span>
+                    <div><strong>Final Team:</strong> Once a team is created, <em>team details cannot be changed later</em>.</div>
+                </li>
+                <li>
+                    <span class="g-num">5</span>
+                    <div><strong>Queries:</strong> For any assistance, please contact us at the <em>official email provided below</em>.</div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="how-it-works">
+    <h3>Registration Process</h3>
+    <div class="process-flow">
+        <div class="step">
+            <div class="step-icon"><i class="fas fa-user-plus"></i></div>
+            <div class="step-text">Register</div>
+        </div>
+        <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+        
+        <div class="step">
+            <div class="step-icon"><i class="fas fa-users"></i></div>
+            <div class="step-text">Create Team</div>
+        </div>
+        <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+        
+        <div class="step">
+            <div class="step-icon"><i class="fas fa-id-card"></i></div>
+            <div class="step-text">Get Team ID</div>
+        </div>
+        <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+        
+        <div class="step">
+            <div class="step-icon"><i class="fas fa-user-friends"></i></div>
+            <div class="step-text">Add 3 Members</div>
+        </div>
+        <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+        
+        <div class="step final-step">
+            <div class="step-icon"><i class="fas fa-flag-checkered"></i></div>
+            <div class="step-text">Complete Team</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
