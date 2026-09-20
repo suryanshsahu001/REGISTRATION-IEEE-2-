@@ -1,0 +1,84 @@
+{% extends "admin_layout.html" %}
+
+{% block content %}
+<div class="admin-page-header">
+    <div>
+        <a href="{{ url_for('admin_teams') }}" class="btn-link" style="color:var(--text-muted);"><i class="fas fa-arrow-left"></i> Back to Teams</a>
+        <h1 style="margin-top:0.5rem;">Team Details: {{ team.name }}</h1>
+    </div>
+    
+    <div class="header-actions">
+        <button id="editTeamBtn" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> Edit Team Info</button>
+    </div>
+</div>
+
+<div class="team-info-card glass-card" style="margin-bottom: 2rem;">
+    <div class="team-header">
+        <div>
+            <h3><span class="badge">{{ team.team_id }}</span> {{ team.name }}</h3>
+            <p style="color:var(--text-muted); margin-top:0.5rem;">Created: {{ team.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+        <div class="team-status status-{{ team.status.lower() }}">
+            {{ team.status }}
+        </div>
+    </div>
+</div>
+
+<div class="team-members-section">
+    <h3>Team Members ({{ team.member_count() }}/4)</h3>
+    <div class="members-grid">
+        {% for member in team.members %}
+            <div class="member-card glass-card" style="background: rgba(0,0,0,0.2);">
+                <div class="member-role">
+                    {% if member.id == team.leader_id %}Team Leader{% else %}Team Member{% endif %}
+                </div>
+                <h4 class="member-name">{{ member.name }}</h4>
+                <div class="member-details">
+                    <p><i class="fas fa-envelope"></i> {{ member.email }}</p>
+                    <p><i class="fas fa-phone"></i> {{ member.mobile }} 
+                        {% if member.phone_verified %}
+                            <span class="status-badge status-registered" style="padding: 2px 5px; font-size: 0.7rem;">✓ Verified</span>
+                        {% else %}
+                            <span class="status-badge status-incomplete" style="padding: 2px 5px; font-size: 0.7rem;">⚠ Not Verified</span>
+                        {% endif %}
+                    </p>
+                    <p><i class="fas fa-university"></i> {{ member.college }}</p>
+                    <p><i class="fas fa-book"></i> {{ member.department }} ({{ member.year }})</p>
+                </div>
+                {% if member.id != team.leader_id %}
+                <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.5rem;">
+                    <button class="btn btn-outline btn-sm remove-member-btn" style="color:var(--danger-color); border-color:var(--danger-color);" data-uid="{{ member.id }}" data-tid="{{ team.id }}" data-email="{{ member.email }}">Remove from Team</button>
+                </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Edit Team Modal -->
+<div id="editTeamModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close-modal">&times;</span>
+        <h3>Edit Team Information</h3>
+        
+        <form id="editTeamForm" class="auth-form" data-id="{{ team.id }}">
+            <div class="form-group">
+                <label>Team Name</label>
+                <input type="text" id="team-name" value="{{ team.name }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Status</label>
+                <select id="team-status">
+                    <option value="INCOMPLETE" {% if team.status == 'INCOMPLETE' %}selected{% endif %}>INCOMPLETE</option>
+                    <option value="COMPLETE" {% if team.status == 'COMPLETE' %}selected{% endif %}>COMPLETE</option>
+                    <option value="REGISTERED" {% if team.status == 'REGISTERED' %}selected{% endif %}>REGISTERED</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
