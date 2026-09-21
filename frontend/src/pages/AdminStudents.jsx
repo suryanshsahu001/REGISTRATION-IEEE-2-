@@ -11,7 +11,7 @@ const AdminStudents = () => {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('users').select('*, teams(id, team_id, name, status, leader_id)').eq('role', 'student');
+      let query = supabase.from('users').select('*, teams!users_team_id_fkey(id, team_id, name, status, leader_id)').eq('role', 'student');
       
       if (search) {
         query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,mobile.ilike.%${search}%,college.ilike.%${search}%`);
