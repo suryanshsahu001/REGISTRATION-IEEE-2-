@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
                 .from('users')
                 .select(`
                     *,
-                    team:teams (
+                    team:teams!users_team_id_fkey (
                         id,
                         team_id,
                         name,
