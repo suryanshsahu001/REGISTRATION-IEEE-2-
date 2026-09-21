@@ -8,29 +8,36 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     const fetchUserProfile = async (authId) => {
-        const { data, error } = await supabase
-            .from('users')
-            .select(`
-                *,
-                team:teams (
-                    id,
-                    team_id,
-                    name,
-                    status,
-                    leader_id
-                )
-            `)
-            .eq('id', authId)
-            .single();
-            
-        if (data) {
-            setUser({
-                ...data,
-                team_member_of: data.team,
-                team_id_num: data.team_id
-            });
-        } else {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select(`
+                    *,
+                    team:teams (
+                        id,
+                        team_id,
+                        name,
+                        status,
+                        leader_id
+                    )
+                `)
+                .eq('id', authId)
+                .single();
+                
+            if (data) {
+                setUser({
+                    ...data,
+                    team_member_of: data.team,
+                    team_id_num: data.team_id
+                });
+            } else {
+                setUser(null);
+            }
+        } catch (err) {
             setUser(null);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -42,8 +49,8 @@ export const AuthProvider = ({ children }) => {
             await fetchUserProfile(session.user.id);
         } else {
             setUser(null);
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
