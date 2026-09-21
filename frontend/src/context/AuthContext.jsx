@@ -6,30 +6,19 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    // Track if we are in the middle of an isolated signup (adding a member)
-    // so we don't react to the onAuthStateChange event it fires
     const suppressAuthChange = useRef(false);
 
     const fetchUserProfile = async (authId) => {
-        setLoading(true);
         try {
-            const { data } = await supabase
+            // Simple fetch — no FK joins that can fail
+            const { data, error } = await supabase
                 .from('users')
-                .select(`
-                    *,
-                    team:teams!users_team_id_fkey (
-                        id,
-                        team_id,
-                        name,
-                        status,
-                        leader_id
-                    )
-                `)
+                .select('*')
                 .eq('id', authId)
                 .single();
 
-            if (data) {
-                setUser({ ...data });
+            if (data && !error) {
+                setUser(data);
             } else {
                 setUser(null);
             }
@@ -42,10 +31,15 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuth = async () => {
         setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            await fetchUserProfile(session.user.id);
-        } else {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                await fetchUserProfile(session.user.id);
+            } else {
+                setUser(null);
+                setLoading(false);
+            }
+        } catch {
             setUser(null);
             setLoading(false);
         }
@@ -55,10 +49,9 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            // Skip if we are signing up an isolated member
             if (suppressAuthChange.current) return;
-
             if (session?.user) {
+                setLoading(true);
                 fetchUserProfile(session.user.id);
             } else {
                 setUser(null);

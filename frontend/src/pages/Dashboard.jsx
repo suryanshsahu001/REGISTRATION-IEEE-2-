@@ -7,77 +7,80 @@ import { supabase } from '../lib/supabase';
 const Dashboard = () => {
   const { user, logout, loading: authLoading, suppressAuthChange } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [dashData, setDashData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [team, setTeam] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [memberForm, setMemberForm] = useState({
-    member_name: '', member_email: '', member_mobile: '', member_college: '', member_department: '', member_year: ''
+    member_name: '', member_email: '', member_mobile: '',
+    member_college: '', member_department: '', member_year: ''
   });
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchDash = async (currentUser) => {
-    const u = currentUser || user;
-    if (!u) return;
-    setLoading(true);
+  // Fetch the team data directly using user.team_id
+  const fetchTeam = async (teamId) => {
+    if (!teamId) { setTeam(null); setPageLoading(false); return; }
     try {
-      let teamData = null;
-      if (u.team_id) {
-        const { data } = await supabase
-          .from('teams')
-          .select('*, members:users(*)')
-          .eq('id', u.team_id)
-          .single();
-        if (data) teamData = data;
-      }
-      setDashData({ user: u, team: teamData });
-      setMemberForm(f => ({
-        ...f,
-        member_college: u.college || '',
-        member_department: u.department || '',
-        member_year: u.year || ''
-      }));
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*, members:users(*)')
+        .eq('id', teamId)
+        .single();
+      if (data && !error) setTeam(data);
+      else setTeam(null);
     } catch {
-      setError('Failed to load dashboard.');
+      setTeam(null);
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
   };
 
+  // Re-fetch the user's team_id directly from DB (fresh, no cache)
+  const refreshUserAndTeam = async () => {
+    if (!user) return;
+    setPageLoading(true);
+    const { data: freshUser } = await supabase
+      .from('users')
+      .select('team_id')
+      .eq('id', user.id)
+      .single();
+    await fetchTeam(freshUser?.team_id);
+  };
+
   useEffect(() => {
-    if (authLoading) return; // Wait for auth to finish
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    fetchDash(user);
+    if (authLoading) return;
+    if (!user) { navigate('/login'); return; }
+    refreshUserAndTeam();
   }, [user, authLoading]);
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
+    if (!teamName.trim()) { setError('Please enter a team name.'); return; }
     setActionLoading(true);
     setError(''); setMessage('');
     try {
       const generatedTeamId = 'MEDHA-T-' + Math.floor(1000 + Math.random() * 9000);
 
-      // Use RPC to create team and assign user atomically — bypasses RLS
+      // RPC call - creates team AND sets user's team_id in one atomic transaction
       const { data: teamPk, error: rpcError } = await supabase
         .rpc('create_team_and_assign', {
           p_team_id: generatedTeamId,
-          p_team_name: teamName,
+          p_team_name: teamName.trim(),
           p_leader_id: user.id
         });
 
       if (rpcError) throw rpcError;
+      if (!teamPk) throw new Error('Team creation failed - no ID returned.');
 
-      setMessage(`Team ${generatedTeamId} created successfully! Reloading...`);
-      // Reload so AuthContext re-fetches user with updated team_id
-      setTimeout(() => window.location.reload(), 1000);
+      setMessage(`Team ${generatedTeamId} created! Loading your team...`);
+      setTeamName('');
+      // Fetch the team directly using the returned PK
+      await fetchTeam(teamPk);
     } catch (err) {
-      setError(err.message || 'Failed to create team.');
+      setError('Error: ' + (err.message || 'Failed to create team.'));
     } finally {
       setActionLoading(false);
     }
@@ -88,9 +91,7 @@ const Dashboard = () => {
     setActionLoading(true);
     setError(''); setMessage('');
     try {
-      // Suppress auth state change so the leader doesn't get logged out
       suppressAuthChange.current = true;
-
       const { createClient } = await import('@supabase/supabase-js');
       const isolatedSupabase = createClient(
         import.meta.env.VITE_SUPABASE_URL,
@@ -114,24 +115,23 @@ const Dashboard = () => {
       });
 
       suppressAuthChange.current = false;
-
       if (signUpError) throw signUpError;
       if (!newMemberData?.user?.id) throw new Error('Signup succeeded but no user ID returned.');
 
-      // Wait briefly for the DB trigger to fire and insert the row into public.users
+      // Wait for DB trigger to insert into public.users
       await new Promise(r => setTimeout(r, 1500));
 
       const { error: linkError } = await supabase
         .from('users')
-        .update({ team_id: dashData.team.id })
+        .update({ team_id: team.id })
         .eq('id', newMemberData.user.id);
 
       if (linkError) throw linkError;
 
-      setMessage(`Successfully added ${memberForm.member_name} to your team!`);
+      setMessage(`Successfully added ${memberForm.member_name}!`);
       setShowAddModal(false);
       setMemberForm({ member_name: '', member_email: '', member_mobile: '', member_college: '', member_department: '', member_year: '' });
-      fetchDash(user);
+      await fetchTeam(team.id);
     } catch (err) {
       suppressAuthChange.current = false;
       setError(err.message || 'Failed to add member. Email may already be in use.');
@@ -147,13 +147,11 @@ const Dashboard = () => {
       const { error } = await supabase
         .from('teams')
         .update({ status: 'REGISTERED' })
-        .eq('id', dashData.team.id);
-
+        .eq('id', team.id);
       if (error) throw error;
-
-      setMessage('Registration completed successfully! Your Team ID is ' + dashData.team.team_id);
+      setMessage('Registration completed! Your Team ID is ' + team.team_id);
       setShowConfirmModal(false);
-      fetchDash(user);
+      await fetchTeam(team.id);
     } catch (err) {
       setError(err.message || 'Network error.');
     } finally {
@@ -161,8 +159,7 @@ const Dashboard = () => {
     }
   };
 
-  // Show spinner while auth OR data is loading
-  if (authLoading || loading) {
+  if (authLoading || pageLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'white', flexDirection: 'column', gap: '1rem' }}>
         <i className="fas fa-spinner fa-spin fa-2x"></i>
@@ -171,19 +168,18 @@ const Dashboard = () => {
     );
   }
 
-  const { user: u, team } = dashData || { user: null, team: null };
-  const isLeader = team && u && team.leader_id === u.id;
+  const isLeader = team && user && team.leader_id === user.id;
   const isComplete = team && team.members && team.members.length >= 4;
 
   return (
     <>
-      <Navbar user={u} onLogout={logout} />
+      <Navbar user={user} onLogout={logout} />
       <main className="main-content">
         <div className="container">
           <div className="dashboard-container">
             <div className="dashboard-header">
               <h2>Dashboard</h2>
-              <p>Welcome, <strong>{u?.name}</strong></p>
+              <p>Welcome, <strong>{user?.name}</strong></p>
             </div>
 
             {message && <div className="alert alert-success">{message}</div>}
@@ -201,7 +197,7 @@ const Dashboard = () => {
                       value={teamName} onChange={e => setTeamName(e.target.value)} />
                   </div>
                   <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                    {actionLoading ? 'Creating...' : 'Create Team'}
+                    {actionLoading ? <><i className="fas fa-spinner fa-spin"></i> Creating...</> : 'Create Team'}
                   </button>
                 </form>
               </div>
@@ -230,7 +226,7 @@ const Dashboard = () => {
                   )}
                   {team.status === 'REGISTERED' && (
                     <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-                      <i className="fas fa-check-circle"></i> Your team is fully registered! Present Team ID <strong>{team.team_id}</strong> at the registration desk.
+                      <i className="fas fa-check-circle"></i> Team registered! Present Team ID <strong>{team.team_id}</strong> at the desk.
                     </div>
                   )}
                 </div>
@@ -283,60 +279,37 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* Add Member Modal */}
       {showAddModal && (
         <div className="modal" style={{ display: 'flex' }}>
           <div className="modal-content glass-card">
             <span className="close-modal" onClick={() => setShowAddModal(false)}>&times;</span>
             <h3>Add Team Member</h3>
-            <p>Register a new member directly to your team. They can log in with their email and password <strong>Welcome123!</strong></p>
+            <p>They can log in with their email and password <strong>Welcome123!</strong></p>
             <form onSubmit={handleAddMember} id="addMemberForm">
-              <div className="form-group">
-                <label>Full Name *</label>
-                <input type="text" required placeholder="Enter member's full name"
-                  value={memberForm.member_name} onChange={e => setMemberForm({ ...memberForm, member_name: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Email Address *</label>
-                <input type="email" required placeholder="Enter member's email"
-                  value={memberForm.member_email} onChange={e => setMemberForm({ ...memberForm, member_email: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Mobile Number *</label>
-                <input type="tel" required pattern="[0-9]{10}" placeholder="10-digit mobile number"
-                  value={memberForm.member_mobile} onChange={e => setMemberForm({ ...memberForm, member_mobile: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>College/University *</label>
-                <input type="text" required
-                  value={memberForm.member_college} onChange={e => setMemberForm({ ...memberForm, member_college: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Course/Department *</label>
-                <input type="text" required
-                  value={memberForm.member_department} onChange={e => setMemberForm({ ...memberForm, member_department: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Year of Study *</label>
+              <div className="form-group"><label>Full Name *</label>
+                <input type="text" required placeholder="Full name" value={memberForm.member_name} onChange={e => setMemberForm({ ...memberForm, member_name: e.target.value })} /></div>
+              <div className="form-group"><label>Email *</label>
+                <input type="email" required placeholder="Email" value={memberForm.member_email} onChange={e => setMemberForm({ ...memberForm, member_email: e.target.value })} /></div>
+              <div className="form-group"><label>Mobile *</label>
+                <input type="tel" required pattern="[0-9]{10}" placeholder="10-digit mobile" value={memberForm.member_mobile} onChange={e => setMemberForm({ ...memberForm, member_mobile: e.target.value })} /></div>
+              <div className="form-group"><label>College *</label>
+                <input type="text" required value={memberForm.member_college} onChange={e => setMemberForm({ ...memberForm, member_college: e.target.value })} /></div>
+              <div className="form-group"><label>Department *</label>
+                <input type="text" required value={memberForm.member_department} onChange={e => setMemberForm({ ...memberForm, member_department: e.target.value })} /></div>
+              <div className="form-group"><label>Year *</label>
                 <select required value={memberForm.member_year} onChange={e => setMemberForm({ ...memberForm, member_year: e.target.value })}>
                   <option value="" disabled>Select Year</option>
-                  <option value="1st Year">1st Year</option>
-                  <option value="2nd Year">2nd Year</option>
-                  <option value="3rd Year">3rd Year</option>
-                  <option value="4th Year">4th Year</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              {actionLoading && <div className="alert alert-success">Adding member, please wait...</div>}
+                  <option>1st Year</option><option>2nd Year</option><option>3rd Year</option><option>4th Year</option><option>Other</option>
+                </select></div>
+              {actionLoading && <div className="alert alert-success">Adding member, please wait (~10 seconds)...</div>}
               <button type="submit" className="btn btn-primary btn-block" disabled={actionLoading}>
-                <i className="fas fa-user-plus"></i> {actionLoading ? 'Adding Member...' : 'Add Member'}
+                <i className="fas fa-user-plus"></i> {actionLoading ? 'Adding...' : 'Add Member'}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Confirm Registration Modal */}
       {showConfirmModal && team && (
         <div className="modal" style={{ display: 'flex' }}>
           <div className="modal-content glass-card">
@@ -346,17 +319,9 @@ const Dashboard = () => {
               <p><strong>Team ID:</strong> {team.team_id}</p>
               <p><strong>Team Name:</strong> {team.name}</p>
               <p><strong>Members ({team.members?.length}/4):</strong></p>
-              <ul>
-                {team.members?.map(m => (
-                  <li key={m.id}>
-                    {m.id === team.leader_id ? <strong>[Leader]</strong> : '[Member]'} {m.name} — {m.email}
-                  </li>
-                ))}
-              </ul>
+              <ul>{team.members?.map(m => <li key={m.id}>{m.id === team.leader_id ? <strong>[Leader]</strong> : '[Member]'} {m.name} — {m.email}</li>)}</ul>
             </div>
-            <div className="alert alert-warning">
-              <i className="fas fa-exclamation-triangle"></i> Once submitted, your team cannot be modified without organiser approval.
-            </div>
+            <div className="alert alert-warning"><i className="fas fa-exclamation-triangle"></i> Once submitted, team cannot be modified.</div>
             <div className="modal-actions">
               <button className="btn btn-outline cancel-btn" onClick={() => setShowConfirmModal(false)}>Cancel</button>
               <button className="btn btn-success" onClick={handleSubmitRegistration} disabled={actionLoading}>
