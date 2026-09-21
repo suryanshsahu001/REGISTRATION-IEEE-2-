@@ -38,6 +38,15 @@ const AdminTeams = () => {
     fetchTeams();
   }, []);
 
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredTeams = teams.filter(t => 
+    t.team_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.leader.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.leader_email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to permanently delete this team and ALL its members?')) return;
     setActionLoading(true);
@@ -82,7 +91,14 @@ const AdminTeams = () => {
     <AdminLayout>
       <div className="admin-page-header">
         <h1>Teams Directory</h1>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <input 
+            type="text" 
+            placeholder="Search by Team ID, Name..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', color: '#000' }}
+          />
           <button onClick={handleExport} className="btn btn-outline btn-sm"><i className="fas fa-download"></i> Export CSV</button>
         </div>
       </div>
@@ -101,7 +117,7 @@ const AdminTeams = () => {
               </tr>
             </thead>
             <tbody>
-              {teams.map(t => (
+              {filteredTeams.map(t => (
                 <tr key={t.id}>
                   <td><strong>{t.team_id}</strong></td>
                   <td>{t.name}</td>
@@ -127,7 +143,7 @@ const AdminTeams = () => {
                   </td>
                 </tr>
               ))}
-              {teams.length === 0 && (
+              {filteredTeams.length === 0 && (
                 <tr><td colSpan="7" style={{textAlign: 'center', padding: '2rem'}}>No teams found.</td></tr>
               )}
             </tbody>
