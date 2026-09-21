@@ -63,34 +63,19 @@ const Dashboard = () => {
     try {
       const generatedTeamId = 'MEDHA-T-' + Math.floor(1000 + Math.random() * 9000);
 
-      const { data: team, error: teamError } = await supabase
-        .from('teams')
-        .insert({ team_id: generatedTeamId, name: teamName, leader_id: user.id, status: 'INCOMPLETE' })
-        .select()
-        .single();
+      // Use RPC to create team and assign user atomically — bypasses RLS
+      const { data: teamPk, error: rpcError } = await supabase
+        .rpc('create_team_and_assign', {
+          p_team_id: generatedTeamId,
+          p_team_name: teamName,
+          p_leader_id: user.id
+        });
 
-      if (teamError) throw teamError;
+      if (rpcError) throw rpcError;
 
-      const { error: userError } = await supabase
-        .from('users')
-        .update({ team_id: team.id })
-        .eq('id', user.id);
-
-      if (userError) throw userError;
-
-      // Fetch fresh team data
-      const { data: freshTeam } = await supabase
-        .from('teams')
-        .select('*, members:users(*)')
-        .eq('id', team.id)
-        .single();
-
-      setMessage(`Team ${generatedTeamId} created successfully!`);
-      const updatedUser = { ...user, team_id: team.id };
-      setDashData({ user: updatedUser, team: freshTeam });
-      setTeamName('');
-      // Force a clean reload so the team view always shows correctly
-      setTimeout(() => window.location.reload(), 800);
+      setMessage(`Team ${generatedTeamId} created successfully! Reloading...`);
+      // Reload so AuthContext re-fetches user with updated team_id
+      setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       setError(err.message || 'Failed to create team.');
     } finally {
