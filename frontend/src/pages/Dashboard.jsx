@@ -89,6 +89,8 @@ const Dashboard = () => {
       const updatedUser = { ...user, team_id: team.id };
       setDashData({ user: updatedUser, team: freshTeam });
       setTeamName('');
+      // Force a clean reload so the team view always shows correctly
+      setTimeout(() => window.location.reload(), 800);
     } catch (err) {
       setError(err.message || 'Failed to create team.');
     } finally {
