@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../lib/supabase';
 
 const Dashboard = () => {
-  const { user, checkAuth, logout } = useContext(AuthContext);
+  const { user, checkAuth, logout, loading: authLoading } = useContext(AuthContext);
   const navigate = useNavigate();
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,11 +22,7 @@ const Dashboard = () => {
   const fetchDash = async () => {
     setLoading(true);
     try {
-      // AuthContext will have the user. Wait for it to be ready.
-      if (!user) {
-        // if user is missing, it might still be loading in AuthContext, or we are logged out
-        return;
-      }
+      if (!user) return;
       
       let teamData = null;
       if (user.team_id) {
@@ -53,13 +49,14 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchDash();
-    } else {
-      // If user is explicitly null and not loading, redirect.
-      // But we need authcontext loading state.
+    if (!authLoading) {
+      if (user) {
+        fetchDash();
+      } else {
+        navigate('/login');
+      }
     }
-  }, [user]);
+  }, [user, authLoading, navigate]);
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
