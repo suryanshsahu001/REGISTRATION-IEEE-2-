@@ -84,10 +84,18 @@ const Dashboard = () => {
         .eq('id', user.id);
         
       if (userError) throw userError;
-      
+
+      // Directly fetch the newly created team with members and update state
+      const { data: freshTeam } = await supabase
+        .from('teams')
+        .select('*, members:users(*)')
+        .eq('id', team.id)
+        .single();
+
       setMessage(`Team ${generatedTeamId} created successfully!`);
-      // Update context and refetch
-      await checkAuth(); 
+      // Directly update dashData so UI refreshes instantly without page reload
+      setDashData(prev => ({ ...prev, user: { ...prev.user, team_id: team.id }, team: freshTeam }));
+      setTeamName('');
     } catch (err) { 
       setError(err.message || 'Failed to create team.'); 
     } finally { 
