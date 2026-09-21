@@ -123,8 +123,12 @@ const Dashboard = () => {
       // Wait for handle_new_user trigger
       await new Promise(r => setTimeout(r, 1500));
 
-      const { error: linkErr } = await supabase
-        .from('users').update({ team_id: team.id }).eq('id', newUser.user.id);
+      // Use RPC to bypass RLS when linking member to team
+      const { error: linkErr } = await supabase.rpc('add_member_to_team', {
+        p_team_id: team.id,
+        p_member_id: newUser.user.id,
+        p_leader_id: user.id
+      });
       if (linkErr) throw linkErr;
 
       setMessage(`Added ${memberForm.member_name} successfully!`);
